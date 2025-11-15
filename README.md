@@ -3,7 +3,6 @@
 
 A comprehensive implementation of a network router that handles ARP (Address Resolution Protocol), IP packet forwarding, ICMP error messages, and routing table management. This project demonstrates core networking concepts at Layer 2 (Data Link) and Layer 3 (Network) of the OSI model.
 
---
 ## 📋 Table of Contents
 
 - [Overview](#overview)
