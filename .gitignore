@@ -11,7 +11,10 @@ sr.purify
 
 # Debug files
 *.dump
+/core
+# Ignore core dump files but allow core/ directory
 core
+!core/
 tags
 *~
 
