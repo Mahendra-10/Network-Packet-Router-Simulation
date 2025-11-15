@@ -32,28 +32,62 @@ ARCH = -D_DARWIN_
 SOCK = -lresolv
 endif
 
-CFLAGS = -g -Wall -D_DEBUG_ -D_GNU_SOURCE $(ARCH)
+# Include directories for headers
+INCLUDES = -Icore -Iarp -Irouting -Iinterface -Iutils -Inetwork -Icrypto
+
+CFLAGS = -g -Wall -D_DEBUG_ -D_GNU_SOURCE $(ARCH) $(INCLUDES)
 
 LIBS= $(SOCK) -lm -lpthread
 PFLAGS= -follow-child-processes=yes -cache-dir=/tmp/${USER} 
 PURIFY= purify ${PFLAGS}
 
-# Add any header files you've added here
-sr_HDRS = sr_arpcache.h sr_utils.h sr_dumper.h sr_if.h sr_protocol.h sr_router.h sr_rt.h  \
-          vnscommand.h sha1.h
+# Core Router Files
+CORE_SRCS = core/sr_router.c core/sr_main.c
+CORE_HDRS = core/sr_router.h core/sr_protocol.h
 
-# Add any source files you've added here
-sr_SRCS = sr_router.c sr_main.c sr_if.c sr_rt.c sr_vns_comm.c sr_utils.c sr_dumper.c  \
-          sr_arpcache.c sha1.c
+# ARP Cache Management
+ARP_SRCS = arp/sr_arpcache.c
+ARP_HDRS = arp/sr_arpcache.h
+
+# Routing Table
+ROUTING_SRCS = routing/sr_rt.c
+ROUTING_HDRS = routing/sr_rt.h
+
+# Interface Management
+INTERFACE_SRCS = interface/sr_if.c
+INTERFACE_HDRS = interface/sr_if.h
+
+# Utilities
+UTILS_SRCS = utils/sr_utils.c utils/sr_dumper.c
+UTILS_HDRS = utils/sr_utils.h utils/sr_dumper.h
+
+# Network Communication
+NETWORK_SRCS = network/sr_vns_comm.c
+NETWORK_HDRS = network/vnscommand.h
+
+# Cryptography
+CRYPTO_SRCS = crypto/sha1.c
+CRYPTO_HDRS = crypto/sha1.h
+
+# All source files
+sr_SRCS = $(CORE_SRCS) $(ARP_SRCS) $(ROUTING_SRCS) $(INTERFACE_SRCS) \
+          $(UTILS_SRCS) $(NETWORK_SRCS) $(CRYPTO_SRCS)
+
+# All header files
+sr_HDRS = $(CORE_HDRS) $(ARP_HDRS) $(ROUTING_HDRS) $(INTERFACE_HDRS) \
+          $(UTILS_HDRS) $(NETWORK_HDRS) $(CRYPTO_HDRS)
 
 sr_OBJS = $(patsubst %.c,%.o,$(sr_SRCS))
-sr_DEPS = $(patsubst %.c,.%.d,$(sr_SRCS))
+sr_DEPS = $(patsubst %.c,%.d,$(sr_SRCS))
 
+# Build object files from source files in subdirectories
 $(sr_OBJS) : %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-$(sr_DEPS) : .%.d : %.c
-	$(CC) -MM $(CFLAGS) $<  > $@
+# Generate dependency files in the same directory as source files
+%.d : %.c
+	@mkdir -p $(dir $@)
+	$(CC) -MM $(CFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@
 
 -include $(sr_DEPS)	
 
@@ -66,12 +100,16 @@ sr.purify : $(sr_OBJS)
 .PHONY : clean clean-deps dist    
 
 clean:
-	rm -f *.o *~ core sr *.dump *.tar tags
+	rm -f core/*.o arp/*.o routing/*.o interface/*.o utils/*.o network/*.o crypto/*.o
+	rm -f core/*.d arp/*.d routing/*.d interface/*.d utils/*.d network/*.d crypto/*.d
+	rm -f .*.d  # Remove any old dependency files from root directory
+	rm -f *~ sr *.dump *.tar tags
 
 clean-deps:
-	rm -f .*.d
+	rm -f core/*.d arp/*.d routing/*.d interface/*.d utils/*.d network/*.d crypto/*.d
+	rm -f .*.d  # Remove any old dependency files from root directory
 
 tags:
-	ctags *.c
+	find core arp routing interface utils network crypto -name "*.c" -o -name "*.h" | xargs ctags
 
 
